@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 require('dotenv').config();
 
-const port = process.env.PORT || 8006;
+const port = process.env.PORT || 8010;
 
 require('./database/checkDB');
 

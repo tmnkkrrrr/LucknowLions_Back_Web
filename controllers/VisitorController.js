@@ -5,8 +5,9 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const pool = require("../database/connect");
-const {  sendForgetPassOtp, sendWelcome, sendWelcomeEmail } = require("../functions");
-const { readAndParseJson, writeJson } = require("../config/readParsedData");
+const { sendForgetPassOtp, sendWelcome, sendWelcomeEmail } = require("../functions");
+const { readAndParseJson } = require("../config/readParsedData");
+const generatePassword = require("../utilities/utilities");
 
 
 
@@ -15,11 +16,11 @@ const { readAndParseJson, writeJson } = require("../config/readParsedData");
 router.post('/signup', async (req, res) => {
   console.table(req.body);
   try {
-    if (!(req.body.name && req.body.email && req.body.mobileNo && req.body.password)) {
+    if (!req.body.name || !req.body.email || !req.body.mobileNo) {
       res.status(400).send("Please Fill All Deatils !!!");
       return;
     }
-    const { name, email, mobileNo, password, refer } = req.body;
+    const { name, email, mobileNo } = req.body;
 
     const checkEmail = await pool.execute(
       `SELECT count(*) AS count FROM users WHERE email = ?`, [email]);
@@ -32,9 +33,11 @@ router.post('/signup', async (req, res) => {
     const checkMobileNo = await pool.execute(
       `SELECT count(*) AS count FROM users WHERE mobileNo = ?`, [mobileNo]);
     if (checkMobileNo[0][0].count > 0) {
-      res.status(202).send("Mobile Number Already Exist");
+      res.status(201).send("Mobile Number Already Exist");
       return;
     }
+
+    const password = generatePassword();
 
     const insertLogin = await pool.execute(
       "INSERT INTO users(name, email, mobileNo, password) VALUES(?, ?, ?, ?)", [name, email, mobileNo, password]);
@@ -48,15 +51,9 @@ router.post('/signup', async (req, res) => {
       console.log(11);
       sendWelcomeEmail(email, name, client, password);
       res.status(200).send({ msg: 'success', userId: insertId });
-      if (refer) {
-        const fromId = await pool.execute(
-          "SELECT userId from users where clientID = ?", [refer]);
-
-        await pool.execute(
-          "INSERT INTO refer(fromClient, toClient, amount) VALUES(?, ?, ?)", [refer, client, readAndParseJson('../config/refer.json').amount]);
-      }
       return;
     }
+
     res.status(400).send("Could not Register !!!");
     return;
   }
@@ -363,64 +360,6 @@ router.post('/new_pass', async (req, res) => {
 
 
 
-
-router.post('/editDisBroker', disUpload.fields([{ name: 'logo' }, { name: 'bgImg' }]), async (req, res) => {
-  const { title, brokerId, body, dematURL, marginTable, brokerageTable, chargesTable } = req.body;
-  console.table(req.body);
-
-  if (!title || !body || !brokerId || !dematURL) {
-    return res.status(400).send("Please fill all details");
-  }
-
-  try {
-    const addBroker = await pool.execute(
-      `UPDATE brokers set title=?, body=?, dematURL=? WHERE id=?`,
-      [title, body, dematURL, brokerId]);
-
-    const marginData = JSON.parse(marginTable);
-    const brokerageData = JSON.parse(brokerageTable);
-    const chargesData = JSON.parse(chargesTable);
-
-    await pool.execute(
-      `DELETE FROM margin WHERE broker_id=?`,
-      [brokerId]
-    );
-    for (const row of marginData) {
-      await pool.execute(
-        `INSERT INTO margin (broker_id, segment, mis, co, bo) VALUES (?, ?, ?, ?, ?)`,
-        [brokerId, row.segment, row.mis, row.co, row.bo]
-      );
-    }
-
-    await pool.execute(
-      `DELETE FROM brokerage WHERE broker_id=?`,
-      [brokerId]
-    );
-    for (const row of brokerageData) {
-      await pool.execute(
-        `INSERT INTO brokerage (broker_id, segment, value) VALUES (?, ?, ?)`,
-        [brokerId, row.segment, row.value]
-      );
-    }
-
-    await pool.execute(
-      `DELETE FROM charges WHERE broker_id=?`,
-      [brokerId]
-    );
-    for (const row of chargesData) {
-      await pool.execute(
-        `INSERT INTO charges (broker_id, segment, value) VALUES (?, ?, ?)`,
-        [brokerId, row.segment, row.value]
-      );
-    }
-
-    res.status(200).send({ message: 'Broker details saved successfully' });
-  } catch (error) {
-    console.error(error);
-    console.log(6)
-    res.status(500).send({ message: 'Error saving broker details' });
-  }
-});
 
 
 router.get('/getBrokerData/:brokerId', async (req, res) => {
