@@ -1,13 +1,95 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
-const multer = require('multer');
 const pool = require("../database/connect");
-const { sendForgetPassOtp, sendWelcome, sendWelcomeEmail } = require("../functions");
-const { readAndParseJson } = require("../config/readParsedData");
-const generatePassword = require("../utilities/utilities");
+
+
+const filePath = path.join(__dirname, 'categories.json');
+
+function readCategories() {
+  const data = fs.readFileSync(filePath, 'utf8');
+  return JSON.parse(data);
+}
+
+function writeCategories(categories) {
+  fs.writeFileSync(filePath, JSON.stringify(categories, null, 2), 'utf8');
+}
+
+router.get('/category', async (req, res) => {
+  try {
+    res.status(200).json(readCategories());
+  } catch (e) {
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.post('/category', async (req, res) => {
+  try {
+    const newCategory = req.body;
+    const categories = readCategories();
+
+    // Assign a new unique ID
+    const maxId = categories.reduce((max, category) => (category.id > max ? category.id : max), 0);
+    newCategory.id = maxId + 1;
+
+    categories.push(newCategory);
+    writeCategories(categories);
+    res.status(201).json(newCategory);
+  } catch (e) {
+    console.log(e);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.put('/category/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).send("Name is required");
+    }
+
+    const categories = readCategories();
+    const category = categories.find(c => c.id === id);
+
+    if (!category) {
+      return res.status(404).send("Category not found");
+    }
+
+    category.name = name;
+    writeCategories(categories);
+    
+    res.status(200).json(category);
+  } catch (e) {
+    console.log(e);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.delete('/category/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const categories = readCategories();
+    const categoryExists = categories.some(category => category.id === id);
+
+    if (!categoryExists) {
+      return res.status(404).send("Category not found");
+    }
+
+    const updatedCategories = categories.filter(category => category.id !== id);
+    writeCategories(updatedCategories)
+    res.status(204).send();
+
+  } catch (e) {
+    console.log(e);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+
+
 
 
 

@@ -193,6 +193,29 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/admin_login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (username && password) {
+
+      if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+        res.status(200).json({ 'message': 'success', 'token': jwt.sign({ username }, process.env.ADMIN_KEY, { expiresIn: '7d' }) });
+        return;
+      }
+
+    } else {
+      res.status(401).send("Could not Login !!!");
+      return;
+    }
+  }
+  catch (e) {
+    console.log(e);
+  }
+});
+
+
+
 
 
 
