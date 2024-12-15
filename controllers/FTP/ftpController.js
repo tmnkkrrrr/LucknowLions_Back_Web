@@ -6,34 +6,59 @@ const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 const path = require('path');
 
-// FTP connection configuration
-const ftpConfig = {
-    host: "216.10.252.54",
-    user: "myadmin_pannel@assets.lucknowlions.com",
-    password: "myadmin-pannel",
-    secure: false // true for FTPS
+// FTP servers configuration
+const ftpServers = {
+    lkons: {
+        host: "216.10.252.54",
+        user: "myadmin_pannel@assets.lucknowlions.com",
+        password: "myadmin_pannel",
+        secure: false // true for FTPS
+    },
+    dmta: {
+        host: "ftp.demtaccount.in",
+        user: "myadmin_pannel1@demtaccount.in",
+        password: "myadmin_pannel1",
+        secure: false
+    },
 };
 
-// Helper function to create FTP client connection
-async function createFtpClient() {
-    const client = new Client();
-    client.ftp.verbose = true; // Enable logging for debugging
-    try {
-        await client.access(ftpConfig);
-        return client;
-    } catch (err) {
-        throw new Error(`FTP Connection failed: ${err.message}`);
+// Helper function to get FTP config for a server
+function getFtpConfig(serverId) {
+    const config = ftpServers[serverId];
+    if (!config) {
+        throw new Error('Invalid server ID');
     }
+    return config;
 }
+
+
+// Get servers list
+router.get('/servers', (req, res) => {
+    const serversList = Object.entries(ftpServers).map(([id, config]) => ({
+        id, name: config.host,
+    }));
+    res.json(serversList);
+});
+
+
+
+// Middleware to validate serverId
+router.use((req, res, next) => {
+    const serverId = req.query.serverId || req.body.serverId;
+    if (!serverId || !ftpServers[serverId]) {
+        return res.status(400).json({ error: 'Invalid or missing server ID' });
+    }
+    next();
+});
 
 // List directory contents
 router.get('/list', async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.query.serverId));
         const path = req.query.path || '/';
         const list = await client.list(path);
-        
+
         const files = list.map(item => ({
             name: item.name,
             size: item.size,
@@ -41,7 +66,7 @@ router.get('/list', async (req, res) => {
             modifiedDate: item.modifiedDate,
             permissions: item.rawModifiedDate
         }));
-        
+
         res.json(files);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -54,19 +79,14 @@ router.get('/list', async (req, res) => {
 router.get('/download', async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.query.serverId));
         const filePath = req.query.path;
         if (!filePath) {
             throw new Error('File path is required');
         }
 
-        // Get file name from path
         const fileName = path.basename(filePath);
-        
-        // Set headers for file download
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        
-        // Stream the file directly to the response
         await client.downloadTo(res, filePath);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -79,38 +99,29 @@ router.get('/download', async (req, res) => {
 router.post('/upload', upload.array('files'), async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.body.serverId));
         let uploadPath = req.body.path || '/';
-        
-        // Normalize upload path to use forward slashes and ensure it starts with '/'
+
         uploadPath = '/' + uploadPath.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
-        
-        // Upload each file
+
         for (const file of req.files) {
             try {
-                // Sanitize the filename
                 const sanitizedName = file.originalname
-                    .replace(/\\/g, '/') // Replace backslashes with forward slashes
+                    .replace(/\\/g, '/')
                     .split('/')
-                    .pop() // Get just the filename, no path
-                    .replace(/[^a-zA-Z0-9.-]/g, '_'); // Replace special chars with underscore
+                    .pop()
+                    .replace(/[^a-zA-Z0-9.-]/g, '_');
 
-                // Combine path and filename using forward slashes
                 const ftpPath = `${uploadPath}/${sanitizedName}`.replace(/\/+/g, '/');
-                
                 const fileStream = fs.createReadStream(file.path);
-                
-                console.log(`Uploading to FTP path: ${ftpPath}`);
+
                 await client.uploadFrom(fileStream, ftpPath);
-                
-                // Clean up temp file
                 fs.unlinkSync(file.path);
             } catch (fileErr) {
                 console.error(`Error uploading file ${file.originalname}:`, fileErr);
-                // Continue with other files even if one fails
             }
         }
-        
+
         res.json({ message: 'Files uploaded successfully' });
     } catch (err) {
         console.error('FTP upload error:', err);
@@ -124,22 +135,21 @@ router.post('/upload', upload.array('files'), async (req, res) => {
 router.delete('/delete', async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.query.serverId));
         const filePath = req.query.path;
         if (!filePath) {
             throw new Error('File path is required');
         }
 
-        // Check if it's a directory
         const list = await client.list(path.dirname(filePath));
         const target = list.find(item => item.name === path.basename(filePath));
-        
-        if (target.type === 2) { // Directory
+
+        if (target.type === 2) {
             await client.removeDir(filePath);
-        } else { // File
+        } else {
             await client.remove(filePath);
         }
-        
+
         res.json({ message: 'Deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -152,12 +162,12 @@ router.delete('/delete', async (req, res) => {
 router.post('/mkdir', async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.body.serverId));
         const dirPath = req.body.path;
         if (!dirPath) {
             throw new Error('Directory path is required');
         }
-        
+
         await client.ensureDir(dirPath);
         res.json({ message: 'Directory created successfully' });
     } catch (err) {
@@ -171,12 +181,12 @@ router.post('/mkdir', async (req, res) => {
 router.post('/rename', async (req, res) => {
     const client = new Client();
     try {
-        await client.access(ftpConfig);
+        await client.access(getFtpConfig(req.body.serverId));
         const { oldPath, newPath } = req.body;
         if (!oldPath || !newPath) {
             throw new Error('Both old and new paths are required');
         }
-        
+
         await client.rename(oldPath, newPath);
         res.json({ message: 'Renamed successfully' });
     } catch (err) {
@@ -185,5 +195,6 @@ router.post('/rename', async (req, res) => {
         client.close();
     }
 });
+
 
 module.exports = router;
