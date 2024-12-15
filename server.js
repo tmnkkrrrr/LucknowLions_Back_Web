@@ -2,12 +2,11 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
-// const backupDatabase = require("./database/backup");
+
 require('dotenv').config();
 
-const port = process.env.PORT || 8010;
 
-// require('./database/checkDB');
+const port = process.env.PORT || 8010;
 
 const corsOptions = {
     origin: "*",
@@ -35,10 +34,9 @@ app.use('/api', require('./routes/routes'));
 
 
 app.get("/", (req, res) => {
-    res.send("Lucknow Lions Deployment Succefull.............");
+    res.send("Lucknow Lions Web Back.............");
 });
 
 app.listen(port, () => {
-    // backupDatabase()
     console.log(`Powerfull App listening on port ${port}`);
 });

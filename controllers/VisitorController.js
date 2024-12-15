@@ -10,6 +10,59 @@ const { readAndParseJson } = require("../config/readParsedData");
 const generatePassword = require("../utilities/utilities");
 
 
+const categoryFilePath = path.join(__dirname, 'categories.json');
+const blogsFilePath = path.join(__dirname, 'blogs.json');
+
+function readCategories() {
+  const data = fs.readFileSync(categoryFilePath, 'utf8');
+  return JSON.parse(data);
+}
+
+function readBlogs() {
+  const data = fs.readFileSync(blogsFilePath, 'utf8');
+  return JSON.parse(data);
+}
+
+//API to get Blogs Data (Next.js)
+router.get('/blogData/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const blogsData = JSON.parse(fs.readFileSync(blogsFilePath, 'utf8'));
+
+    // Find the blog that matches the slug and is not hidden
+    const blog = Array.isArray(blogsData)
+      ? blogsData.find(blog => blog.pageUrl === slug && !blog.isHidden)
+      : null;
+
+    if (!blog) return res.status(404).json({ error: 'Blog not found' });
+
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: 'Error reading or processing blogs data' });
+  }
+});
+
+
+router.get('/categories', async (req, res) => {
+  try {
+
+    const categories = readCategories();
+
+    res.status(200).json({
+      success: true,
+      blogs: categories
+    });
+
+  } catch (error) {
+    console.error('Error in category route:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+
 
 
 
@@ -62,7 +115,48 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+router.get('/blogs/related', async (req, res) => {
+  try {
+    const { category: categoryName } = req.query;
 
+
+    // Read categories and blogs
+    const categories = readCategories();
+    const blogs = readBlogs();
+
+    // Find category ID by name
+    const category = categories.find(cat =>
+      cat.name.toLowerCase() === categoryName.toLowerCase()
+    );
+
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found'
+      });
+    }
+
+    // Filter blogs by category ID
+    const filteredBlogs = blogs.filter(blog => {
+      return blog.selectedCategories &&
+        Array.isArray(blog.selectedCategories) &&
+        blog.selectedCategories.includes(category.id);
+    });
+
+    return res.status(200).json({
+      success: true,
+      blogs: filteredBlogs
+    });
+
+  } catch (error) {
+    console.error('Error in category_blogs route:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
 
 
 
@@ -199,9 +293,11 @@ router.post('/admin_login', async (req, res) => {
 
     if (username && password) {
 
-      if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+      if (username === 'admin' && password === 'MySecoundBike') {
         res.status(200).json({ 'message': 'success', 'token': jwt.sign({ username }, process.env.ADMIN_KEY, { expiresIn: '7d' }) });
         return;
+      } else {
+        res.status(401).send("Invalid Credentials !!!");
       }
 
     } else {
@@ -213,7 +309,6 @@ router.post('/admin_login', async (req, res) => {
     console.log(e);
   }
 });
-
 
 
 
@@ -276,27 +371,6 @@ router.post('/forget_pass', async (req, res) => {
 });
 
 
-router.post('/upd_add', async (req, res) => {
-  console.table(req.body);
-  try {
-    if (!(req.body.userId || req.body.state || req.body.city || req.body.add || req.body.pincode)) {
-      res.status(400).send("Please Fill All Deatils !!!");
-      return;
-    }
-    const { userId, add, city, state, pincode } = req.body;
-
-    const updateAddress = await pool.execute(
-      `UPDATE users SET address=?, city=?, state=?, pincode=? WHERE userId = ?`, [add, city, state, parseInt(pincode), userId]);
-    if (updateAddress[0].affectedRows > 0) {
-      res.status(200).send({ msg: 'success' });
-      return;
-    }
-    res.status(400).send({ msg: 'NOT Found!' });
-  }
-  catch (e) {
-    console.log(e);
-  }
-});
 
 router.post('/check_inactive', async (req, res) => {
   console.table(req.body);
@@ -318,30 +392,6 @@ router.post('/check_inactive', async (req, res) => {
       return;
     }
 
-  }
-  catch (e) {
-    console.log(e);
-  }
-});
-
-router.post('/get_add', async (req, res) => {
-  console.table(req.body);
-  try {
-    if (!req.body.userId) {
-      res.status(400).send("Please Fill All Deatils !!!");
-      return;
-    }
-    const { userId } = req.body;
-
-    const getAddress = await pool.execute(
-      `SELECT address, state, city, pincode FROM users WHERE userId = ?`, [parseInt(userId)]);
-    console.log(getAddress[0]);
-
-    if (getAddress[0].length > 0) {
-      res.status(200).send(getAddress[0][0]);
-      return;
-    }
-    res.status(400).send({ msg: 'NOT Found!' });
   }
   catch (e) {
     console.log(e);

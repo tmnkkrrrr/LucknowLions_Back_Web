@@ -1,46 +1,20 @@
 [
   {
+    "name": "latest",
     "id": 1,
-    "name": "Zerodha"
+    "description": "Stay updated with the most recent and relevant blog posts tailored for you. ok",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat1.png",
+    "slug": "fundamental-analysis"
   },
   {
+    "name": "Latest Fyers",
     "id": 2,
-    "name": "Upstox"
+    "slug": "latest-fyers",
+    "imageUrl": "",
+    "description": ""
   },
   {
-    "id": 3,
-    "name": "Fyers"
-  },
-  {
-    "id": 4,
-    "name": "Education12"
-  },
-  {
-    "id": 5,
-    "name": "Lifestyle"
-  },
-  {
-    "id": 7,
-    "name": "Finance"
-  },
-  {
-    "id": 8,
-    "name": "Entertainment"
-  },
-  {
-    "name": "new cat",
-    "id": 9
-  },
-  {
-    "name": "Page 1",
-    "id": 10
-  },
-  {
-    "name": "2",
-    "id": 11
-  },
-  {
-    "name": "hgjk",
-    "id": 12
+    "name": "sd",
+    "id": 5
   }
 ]
