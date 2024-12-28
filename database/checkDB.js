@@ -2,7 +2,7 @@ const pool = require("./connect");
 
 async function checkConnection() {
   try {
-    const [rows, fields] = await pool.execute("SELECT 1");
+    await pool.execute("SELECT 1");
     console.log("Database Connected.");
   } catch (error) {
     console.error("Error checking database connection:", error.message);

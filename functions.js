@@ -1,9 +1,7 @@
 const axios = require('axios');
 const nodemailer = require('nodemailer');
-const schedule = require('node-schedule');
 const fs = require('fs');
-const mysql = require('mysql2');
-const { exec } = require('child_process');
+;
 
 
 function generateOtp() {

@@ -5,9 +5,9 @@ const fs = require('fs');
 const pool = require("../database/connect");
 const ftpApi = require ('./FTP/ftpController')
 
-const categoryFilePath = path.join(__dirname, 'categories.json');
-const blogsFilePath = path.join(__dirname, 'blogs.json');
-const draftBlogsFilePath = path.join(__dirname, 'draft_blogs.json');
+const categoryFilePath = path.join(__dirname, '../db_files/categories.json');
+const blogsFilePath = path.join(__dirname, '../db_files/blogs.json');
+const draftBlogsFilePath = path.join(__dirname, '../db_files/draft_blogs.json');
 
 
 

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Latest",
+    "id": 1,
+    "description": "Stay updated with the most recent and relevant blog posts tailored for you.",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat1.png",
+    "slug": "latest"
+  },
+  {
+    "name": "Fyers",
+    "id": 2,
+    "slug": "fyers",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat2.png",
+    "description": "Discover what's buzzing across topics that matter most to your interests."
+  },
+  {
+    "name": "Upstox",
+    "id": 5,
+    "slug": "upstox",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat3.png",
+    "description": "Explore innovative and engaging learning resources to enhance your knowledge."
+  },
+  {
+    "name": "Technical Analysis",
+    "slug": "technical-analysis",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat4.png",
+    "description": "Personalized articles and blogs curated to match your unique preferences.",
+    "id": 6
+  },
+  {
+    "name": "Fundamental Analysis",
+    "slug": "fundamental-analysis",
+    "imageUrl": "https://www.lucknowlions.com/blogs_files/cat5.png",
+    "description": "Dive into expert insights and trending topics on stock market education.",
+    "id": 7
+  }
+]

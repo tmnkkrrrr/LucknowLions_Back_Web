@@ -1,25 +1,36 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const { Client } = require('basic-ftp');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 // FTP servers configuration
 const ftpServers = {
+    dmta: {
+        name: 'Demt Account',
+        host: "162.241.85.74",
+        user: "myadmin_pannel@assets.demtaccount.in",
+        password: "myadmin_pannel",
+        rootDir: 'demt_images',
+        color: 'blue',
+        domain: 'assets.demtaccount.in',
+        secure: false
+    },
     lkons: {
+        name: 'Lucknow Lions',
         host: "216.10.252.54",
         user: "myadmin_pannel@assets.lucknowlions.com",
         password: "myadmin_pannel",
+        rootDir: 'lions_images',
+        color: 'green',
+        domain: 'assets.lucknowlions.com',
         secure: false // true for FTPS
-    },
-    dmta: {
-        host: "ftp.demtaccount.in",
-        user: "myadmin_pannel1@demtaccount.in",
-        password: "myadmin_pannel1",
-        secure: false
-    },
+    }
+
 };
 
 // Helper function to get FTP config for a server
@@ -35,7 +46,7 @@ function getFtpConfig(serverId) {
 // Get servers list
 router.get('/servers', (req, res) => {
     const serversList = Object.entries(ftpServers).map(([id, config]) => ({
-        id, name: config.host,
+        id, name: config.name, base: config.rootDir, color: config.color, domain: config.domain
     }));
     res.json(serversList);
 });
@@ -43,13 +54,13 @@ router.get('/servers', (req, res) => {
 
 
 // Middleware to validate serverId
-router.use((req, res, next) => {
-    const serverId = req.query.serverId || req.body.serverId;
-    if (!serverId || !ftpServers[serverId]) {
-        return res.status(400).json({ error: 'Invalid or missing server ID' });
-    }
-    next();
-});
+// router.use((req, res, next) => {
+//     const serverId = req.query.serverId || req.body.serverId;
+//     if (!serverId || !ftpServers[serverId]) {
+//         return res.status(400).json({ error: 'Invalid or missing server ID' });
+//     }
+//     next();
+// });
 
 // List directory contents
 router.get('/list', async (req, res) => {
@@ -57,6 +68,7 @@ router.get('/list', async (req, res) => {
     try {
         await client.access(getFtpConfig(req.query.serverId));
         const path = req.query.path || '/';
+        // const adjustedPath = path === '/' ? `/${getFtpConfig(req.query.serverId).rootDir}` : path;
         const list = await client.list(path);
 
         const files = list.map(item => ({
@@ -98,6 +110,7 @@ router.get('/download', async (req, res) => {
 // Upload files
 router.post('/upload', upload.array('files'), async (req, res) => {
     const client = new Client();
+
     try {
         await client.access(getFtpConfig(req.body.serverId));
         let uploadPath = req.body.path || '/';
@@ -127,10 +140,67 @@ router.post('/upload', upload.array('files'), async (req, res) => {
         console.error('FTP upload error:', err);
         res.status(500).json({ error: err.message });
     } finally {
-        await client.close();
+        client.close();
     }
 });
 
+
+//Resize Image
+router.put('/resize', async (req, res) => {
+    const client = new Client();
+
+    try {
+        const { fileUrl, serverId, path, width, height } = req.body;
+
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'File URL is required' });
+        }
+
+        await client.access(getFtpConfig(serverId));
+        let uploadPath = '/' + (path || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+
+        const parsedWidth = parseInt(width) || null;
+        const parsedHeight = parseInt(height) || null;
+
+        if (!parsedWidth && !parsedHeight) {
+            throw new Error('Width or height must be specified');
+        }
+
+        // Download file from URL
+        const response = await axios({
+            method: 'GET',
+            url: fileUrl,
+            responseType: 'arraybuffer'
+        });
+
+        // Extract filename from URL
+        const fileName = fileUrl.split('/').pop().replace(/[^a-zA-Z0-9.-]/g, '_');
+        const ftpPath = `${uploadPath}/${fileName}`.replace(/\/+/g, '/');
+
+        // Resize image
+        const resizedBuffer = await sharp(response.data)
+            .resize(parsedWidth, parsedHeight, {
+                fit: 'contain',
+                withoutEnlargement: true
+            })
+            .toBuffer();
+
+        // Convert buffer to stream and upload to FTP
+        const { Readable } = require('stream');
+        const readableStream = Readable.from(resizedBuffer);
+        await client.uploadFrom(readableStream, ftpPath);
+
+        res.json({
+            message: 'File resized and uploaded successfully',
+            path: ftpPath
+        });
+    } catch (err) {
+        console.error('Processing/Upload error:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.close();
+    }
+});
 // Delete file or directory
 router.delete('/delete', async (req, res) => {
     const client = new Client();

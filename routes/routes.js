@@ -6,5 +6,4 @@ router.use('/v1/admin/', require('../controllers/AdminController'));
 router.use('/v1/website/', require('../controllers/WebsiteController'));
 
 
-
 module.exports = router;

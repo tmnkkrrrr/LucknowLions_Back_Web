@@ -10,8 +10,8 @@ const { readAndParseJson } = require("../config/readParsedData");
 const generatePassword = require("../utilities/utilities");
 
 
-const categoryFilePath = path.join(__dirname, 'categories.json');
-const blogsFilePath = path.join(__dirname, 'blogs.json');
+const categoryFilePath = path.join(__dirname, '../db_files/categories.json');
+const blogsFilePath = path.join(__dirname, '../db_files/blogs.json');
 
 function readCategories() {
   const data = fs.readFileSync(categoryFilePath, 'utf8');
@@ -24,14 +24,21 @@ function readBlogs() {
 }
 
 //API to get Blogs Data (Next.js)
-router.get('/blogData/:slug', async (req, res) => {
+router.get('/blogData/:cat/:pageUrl', async (req, res) => {
   try {
-    const { slug } = req.params;
-    const blogsData = JSON.parse(fs.readFileSync(blogsFilePath, 'utf8'));
+    const { cat, pageUrl } = req.params;
+    const catData = readCategories();
+    const blogsData = readBlogs();
 
-    // Find the blog that matches the slug and is not hidden
+    const category = catData.find(c => c.slug === cat);
+    if (!category) return res.status(404).json({ error: 'Category not found' });
+
+    // Find the blog that matches the pageUrl and is not hidden
     const blog = Array.isArray(blogsData)
-      ? blogsData.find(blog => blog.pageUrl === slug && !blog.isHidden)
+      ? blogsData.find(blog =>
+        blog.pageUrl === pageUrl && !blog.isHidden &&
+        blog.selectedCategories.includes(category.id)
+      )
       : null;
 
     if (!blog) return res.status(404).json({ error: 'Blog not found' });
