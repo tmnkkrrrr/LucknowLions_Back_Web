@@ -1,12 +1,9 @@
 const express = require("express");
 const app = express();
-const bodyParser = require("body-parser");
 const cors = require("cors");
 
 require('dotenv').config();
 
-
-const port = process.env.PORT || 8010;
 
 const corsOptions = {
     origin: "*",
@@ -15,10 +12,9 @@ const corsOptions = {
 };
 
 
-app.use(express.urlencoded({ extended: false }));
 app.use(cors(corsOptions));
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -37,6 +33,8 @@ app.get("/", (req, res) => {
     res.send("Lucknow Lions Web Back.............");
 });
 
+
+const port = process.env.PORT || 8010;
 app.listen(port, () => {
     console.log(`Powerfull App listening on port ${port}`);
 });

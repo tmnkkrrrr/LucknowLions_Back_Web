@@ -3,11 +3,12 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const pool = require("../database/connect");
-const ftpApi = require ('./FTP/ftpController')
+const ftpApi = require('./FTP/ftpController')
 
 const categoryFilePath = path.join(__dirname, '../db_files/categories.json');
 const blogsFilePath = path.join(__dirname, '../db_files/blogs.json');
 const draftBlogsFilePath = path.join(__dirname, '../db_files/draft_blogs.json');
+const sitemapPath = path.join(__dirname, '../db_files/sitemap.xml');
 
 
 
@@ -28,6 +29,7 @@ router.get('/category', async (req, res) => {
   }
 });
 
+
 router.post('/category', async (req, res) => {
   try {
     const newCategory = req.body;
@@ -45,6 +47,7 @@ router.post('/category', async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 router.put('/category/:id', async (req, res) => {
   try {
@@ -71,6 +74,7 @@ router.put('/category/:id', async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 router.delete('/category/:id', async (req, res) => {
   try {
@@ -139,7 +143,17 @@ router.get('/blogs/:type', async (req, res) => {
   try {
     if (req.params.type === undefined) res.status(400).send('Can not Find Blogs');
 
-    res.status(200).json(readBlogs(req.params.type));
+    const cat = readCategories();
+    const blogs = readBlogs(req.params.type);
+    const blogsWithCatNames = blogs.map(blog => {
+      const catnames = blog.selectedCategories.map(catId =>
+        cat.find(c => c.id === catId)?.name
+      ).filter(Boolean);
+
+      return { ...blog, catnames };
+    });
+
+    res.status(200).json(blogsWithCatNames);
   } catch (e) {
     res.status(500).send("Internal Server Error");
   }
@@ -400,18 +414,10 @@ router.get('/contact_us_queries', async (req, res) => {
 
 
 
-
-
-
 router.post('/brokers', async (req, res) => {
   const brokers = req.body;
 
-  const sql = `
-        INSERT INTO brokers (name, link) 
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE 
-        link = VALUES(link);
-    `;
+  const sql = `INSERT INTO brokers (name, link) VALUES (?, ?) ON DUPLICATE KEY UPDATE link = VALUES(link);`;
 
   try {
     for (const broker of brokers) {
@@ -422,6 +428,31 @@ router.post('/brokers', async (req, res) => {
     console.error('Error updating brokers:', error);
     res.status(500).json({ error: 'Failed to update brokers' });
   }
+});
+
+
+
+router.get('/sitemap', async (req, res) => {
+
+  fs.readFile(sitemapPath, "utf8", (err, data) => {
+    if (err) return res.status(500).send("Error reading the XML file.");
+
+    res.setHeader("Content-Type", "application/xml");
+    res.send(data);
+  });
+});
+
+
+router.patch('/sitemap', async (req, res) => {
+  const xmlData = req.body.sitemap;
+
+  if (!xmlData) return res.status(400).send('No XML data provided');
+
+  fs.writeFile(sitemapPath, xmlData, (err) => {
+    if (err) return res.status(500).send('Error saving the sitemap file');
+
+    res.status(200).send('Sitemap saved successfully');
+  });
 });
 
 

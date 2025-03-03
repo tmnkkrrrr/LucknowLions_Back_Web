@@ -57,13 +57,20 @@ const tableContactUs = `CREATE TABLE IF NOT EXISTS contactUs (
                         subject VARCHAR(100),
                         message TEXT,
                         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
+                    
+const tableSitemap = `CREATE TABLE IF NOT EXISTS sitemap (
+                          id INT AUTO_INCREMENT PRIMARY KEY,  
+                          url text,
+                          priority double,
+                          lastModify TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
 
 try {
   pool.execute(tableUSER);
   pool.execute(tableBanner);
   pool.execute(tableBrokerage);
-  pool.execute(tableBrokers)
-  pool.execute(tableContactUs)
+  pool.execute(tableBrokers);
+  pool.execute(tableContactUs);
+  pool.execute(tableSitemap);
 } catch (e) {
   console.warn(`Failed to Create Table, Reason : ${e}`);
 }

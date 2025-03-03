@@ -23,15 +23,19 @@ function readBlogs() {
   return JSON.parse(data);
 }
 
+
 //API to get Blogs Data (Next.js)
 router.get('/blogData/:cat/:pageUrl', async (req, res) => {
   try {
+
     const { cat, pageUrl } = req.params;
     const catData = readCategories();
     const blogsData = readBlogs();
 
     const category = catData.find(c => c.slug === cat);
-    if (!category) return res.status(404).json({ error: 'Category not found' });
+    console.log(category)
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' })};
 
     // Find the blog that matches the pageUrl and is not hidden
     const blog = Array.isArray(blogsData)
@@ -69,6 +73,27 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+
+router.get('/blogs_with_url', async (req, res) => {
+  try {
+    // Read blogs
+    const blogs = readBlogs();
+
+    const filteredABlogsData = blogs.map(({ title, pageUrl }) => ({ title, pageUrl }));
+
+    return res.status(200).json({
+      success: true,
+      blogsdata: filteredABlogsData
+    });
+
+  } catch (error) {
+    console.error('Error in category_blogs route:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
 
 
 
@@ -293,6 +318,7 @@ router.post('/login', async (req, res) => {
     console.log(e);
   }
 });
+
 
 router.post('/admin_login', async (req, res) => {
   try {

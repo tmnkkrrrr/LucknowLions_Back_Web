@@ -11,7 +11,8 @@ const sharp = require('sharp');
 // FTP servers configuration
 const ftpServers = {
     dmta: {
-        name: 'Demt Account',
+        name: 'DEMT',
+        des: 'Server 1',
         host: "162.241.85.74",
         user: "myadmin_pannel@assets.demtaccount.in",
         password: "myadmin_pannel",
@@ -21,7 +22,8 @@ const ftpServers = {
         secure: false
     },
     lkons: {
-        name: 'Lucknow Lions',
+        name: 'LL',
+        des: 'Server 2',
         host: "216.10.252.54",
         user: "myadmin_pannel@assets.lucknowlions.com",
         password: "myadmin_pannel",
@@ -46,7 +48,7 @@ function getFtpConfig(serverId) {
 // Get servers list
 router.get('/servers', (req, res) => {
     const serversList = Object.entries(ftpServers).map(([id, config]) => ({
-        id, name: config.name, base: config.rootDir, color: config.color, domain: config.domain
+        id, name: config.name, des: config.des, base: config.rootDir, color: config.color, domain: config.domain
     }));
     res.json(serversList);
 });
