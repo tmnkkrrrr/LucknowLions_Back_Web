@@ -287,14 +287,14 @@ router.post('/blog', async (req, res) => {
 router.put('/page/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { title, pageUrl, content, seoDetails, ogData, auther, isHidden, blogTags, selectedCategories, createdAt, saveType } = req.body;
+    const { title, pageUrl, content, seoDetails, ogData, auther, blogLang, isHidden, blogTags, selectedCategories, createdAt, saveType } = req.body;
 
     const blogs = readBlogs(saveType) || [];
     let blog = blogs.find(b => b.id === id);
 
     if (!blog) {
       blog = {
-        id, title, pageUrl, content, seoDetails, ogData, auther, isHidden, blogTags, selectedCategories, createdAt
+        id, title, pageUrl, content, seoDetails, ogData, auther,blogLang, isHidden, blogTags, selectedCategories, createdAt
       };
       blogs.push(blog);
 
@@ -305,6 +305,7 @@ router.put('/page/:id', async (req, res) => {
       if (seoDetails) blog.seoDetails = seoDetails;
       if (ogData) blog.ogData = ogData;
       if (auther) blog.auther = auther;
+      if (blogLang) blog.blogLang = blogLang;
       if (isHidden != undefined) blog.isHidden = isHidden;
       if (blogTags) blog.blogTags = blogTags;
       if (selectedCategories) blog.selectedCategories = selectedCategories;

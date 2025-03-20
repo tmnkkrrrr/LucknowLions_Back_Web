@@ -35,7 +35,8 @@ router.get('/blogData/:cat/:pageUrl', async (req, res) => {
     const category = catData.find(c => c.slug === cat);
     console.log(category)
     if (!category) {
-      return res.status(404).json({ error: 'Category not found' })};
+      return res.status(404).json({ error: 'Category not found' })
+    };
 
     // Find the blog that matches the pageUrl and is not hidden
     const blog = Array.isArray(blogsData)
@@ -78,7 +79,26 @@ router.get('/blogs_with_url', async (req, res) => {
   try {
     // Read blogs
     const blogs = readBlogs();
+    const catData = readCategories();
 
+    const categoryMap = {};
+    catData.forEach(category => { categoryMap[category.id] = category.slug; });
+
+    const blogList = blogs.map(blog => {
+      // Get the category slug for the first selected category (assuming there could be multiple)
+      const categoryId = blog.selectedCategories[0];
+      const categorySlug = categoryMap[categoryId] || 'uncategorized';
+
+      // Construct the URL using category/pageUrl format
+      const blogUrl = `${categorySlug}/${blog.pageUrl}`;
+
+      return {
+        title: blog.title,
+        url: blogUrl
+      };
+    });
+    res.json(blogList);
+    return;
     const filteredABlogsData = blogs.map(({ title, pageUrl }) => ({ title, pageUrl }));
 
     return res.status(200).json({
